@@ -51,10 +51,10 @@ func NewProduct(
 	// Validate period type if provided
 	if periodType != "" {
 		switch periodType {
-		case PeriodDay, PeriodWeek, PeriodMonth, PeriodYear:
-			// valid
-		default:
-			return nil, fmt.Errorf("invalid period type: %s", periodType)
+			case PeriodDay, PeriodWeek, PeriodMonth, PeriodYear:
+				// valid
+			default:
+				return nil, fmt.Errorf("invalid period type: %s", periodType)
 		}
 	}
 	// Round amount to two decimals

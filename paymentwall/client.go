@@ -84,7 +84,7 @@ func hashSHA256(s string) string {
 // calculateSignature builds a signature string based on the provided parameters and version.
 // It implements SigV1, SigV2, and SigV3 exactly as in the Python SDK.
 func (c *Client) calculateSignature(
-	params map[string]interface{},
+	params map[string]any,
 	version SignatureVersion,
 ) (string, error) {
 	if c.SecretKey == "" {
@@ -92,42 +92,42 @@ func (c *Client) calculateSignature(
 	}
 
 	switch version {
-	case SigV1:
-		// v1: MD5(uid + secret)
-		uid, _ := params["uid"].(string)
-		return hashMD5(uid + c.SecretKey), nil
+		case SigV1:
+			// v1: MD5(uid + secret)
+			uid, _ := params["uid"].(string)
+			return hashMD5(uid + c.SecretKey), nil
 
-	case SigV2, SigV3:
-		// v2/v3: sorted key=value pairs + secret
-		// flatten params
-		keys := make([]string, 0, len(params))
-		for k := range params {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-
-		var base strings.Builder
-		for _, k := range keys {
-			v := params[k]
-			// handle slices if needed
-			switch val := v.(type) {
-			case []interface{}:
-				for i, item := range val {
-					base.WriteString(fmt.Sprintf("%s[%d]=%v", k, i, item))
-				}
-			default:
-				base.WriteString(fmt.Sprintf("%s=%v", k, val))
+		case SigV2, SigV3:
+			// v2/v3: sorted key=value pairs + secret
+			// flatten params
+			keys := make([]string, 0, len(params))
+			for k := range params {
+				keys = append(keys, k)
 			}
-		}
-		base.WriteString(c.SecretKey)
+			sort.Strings(keys)
 
-		if version == SigV2 {
-			return hashMD5(base.String()), nil
-		}
-		// SigV3
-		return hashSHA256(base.String()), nil
+			var base strings.Builder
+			for _, k := range keys {
+				v := params[k]
+				// handle slices if needed
+				switch val := v.(type) {
+					case []any:
+						for i, item := range val {
+							base.WriteString(fmt.Sprintf("%s[%d]=%v", k, i, item))
+						}
+					default:
+						base.WriteString(fmt.Sprintf("%s=%v", k, val))
+				}
+			}
+			base.WriteString(c.SecretKey)
 
-	default:
-		return "", fmt.Errorf("unsupported signature version: %d", version)
+			if version == SigV2 {
+				return hashMD5(base.String()), nil
+			}
+			// SigV3
+			return hashSHA256(base.String()), nil
+
+		default:
+			return "", fmt.Errorf("unsupported signature version: %d", version)
 	}
 }
