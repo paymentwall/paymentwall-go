@@ -33,7 +33,7 @@ const (
 	GoodsController = "subscription"
 	CartController  = "cart"
 	BaseURL         = "https://api.paymentwall.com/api"
-	VersionString   = "1.0.9"
+	VersionString   = "0.1.1"
 )
 
 // Client holds global configuration and error state for the SDK.
@@ -82,7 +82,7 @@ func hashSHA256(s string) string {
 }
 
 // calculateSignature builds a signature string based on the provided parameters and version.
-// It implements SigV1, SigV2, and SigV3 exactly as in the Python SDK.
+// It implements SigV1, SigV2, and SigV3 signature algorithms as per Paymentwall's documentation.
 func (c *Client) calculateSignature(
 	params map[string]any,
 	version SignatureVersion,

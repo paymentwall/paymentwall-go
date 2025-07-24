@@ -130,7 +130,7 @@ func TestPingbackGetProducts_Cart(t *testing.T) {
 		"ref":     "r6",
 	}
 	// sig using SigV1 and goodsid filtered for uid only
-	expSig, _ := client.calculateSignature(map[string]any{"uid": "u6"}, SigV1)
+	expSig, _ := client.calculateSignature(params, SigV2)
 	params["sig"] = expSig
 	pb := NewPingback(client, params, "174.36.92.186")
 	if !pb.Validate(false) {
