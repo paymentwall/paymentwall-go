@@ -4,39 +4,37 @@
 
 To sign up for a Paymentwall Merchant Account, [click here](https://paymentwall.com/signup/merchant?source=gh-go).
 
-# Paymentwall Go Library
+# Paymentwall Golang Library
+This library allows developers to use [Paymentwall APIs](https://docs.paymentwall.com/) (Virtual Currency, Digital Goods featuring recurring billing, and Virtual Cart).
 
-This Go module provides a thin, idiomatic wrapper around the Paymentwall APIs:
+To use Paymentwall, all you need to do is to sign up for a Paymentwall Merchant Account so you can setup an Application designed for your site.
+To open your merchant account and set up an application, you can [sign up here](http://paymentwall.com/signup/merchant?source=gh-py).
 
-* **Virtual Currency** (`APIVC`)
-* **Digital Goods** (`APIGoods`)
-* **Cart / Shopping Cart** (`APICart`)
-
-It mirrors the behavior of our official Python and Node.js SDKs, with Go-style APIs and error handling.
 
 ---
 
 ## Installation
 
-Requires Go 1.16+ (modules)
+Requires Go 1.18+ (modules)
 
 ```bash
-go get github.com/SamoySamoy/paymentwall-go
+go get github.com/paymentwall/paymentwall-go
 ```
 
 In your code:
 
 ```go
-import "github.com/SamoySamoy/paymentwall-go"
+import "github.com/paymentwall/paymentwall-go"
 ```
 
 ---
 
 # Code Samples
 
-## Checkout / Digital Goods API
+## Checkout & Digital Goods API
 
 [Web API details](https://docs.paymentwall.com/apis#section-checkout-onetime)
+[Web API details](https://docs.paymentwall.com/apis#section-widget-dg)
 
 ### Initializing Paymentwall
 
@@ -49,15 +47,19 @@ client := paymentwall.NewClient(
 ```
 
 ### Widget Call
+[Web API details](https://docs.paymentwall.com/apis#section-checkout-onetime)
+[Web API details](https://docs.paymentwall.com/apis#section-widget-dg)
+
+The widget is a payment page hosted by Paymentwall that embeds the entire payment flow: selecting the payment method, completing the billing details, and providing customer support via the Help section. You can redirect the users to this page or embed it via iframe. Below is an example that renders an iframe with Paymentwall Widget.
 
 ```go
-// 1) Create a one-time or subscription Product
+// 1) Create a Product (for checkout API)
 prod, err := paymentwall.NewProduct(
   "product301",               // external ID
   12.12,                      // amount
   "USD",                      // currency
   "Test Product",             // name
-  paymentwall.ProductTypeFixed,
+  paymentwall.ProductTypeFixed, // type
   0, "", false, nil,
 )
 if err != nil {
@@ -69,7 +71,7 @@ widget := paymentwall.NewWidget(
   client,
   "user4522",                 // your end-user ID
   "pw",                       // widget code from Merchant Area
-  []*paymentwall.Product{prod},
+  []*paymentwall.Product{prod}, // Checkout API require 1 product, let empty for digital good API
   map[string]any{"email":"user@hostname.com"},
 )
 
@@ -82,26 +84,11 @@ fmt.Println(html)
 ```
 
 ### Pingback Processing
+The Pingback is a webhook notifying about a payment being made. Pingbacks are sent via HTTP/HTTPS to your servers. To process pingbacks use the following guide:
 
 ```go
-// Suppose you’ve parsed all query params into a map[string]any:
-params := map[string]any{
-  "uid":    "user4522",
-  "goodsid":"product301",
-  "slength":"0",
-  "speriod":"",
-  "type":   "0",
-  "ref":    "REF123",
-}
-
-// Calculate signature (SigV1 default for Goods)
-sig, _ := client.calculateSignature(
-  map[string]any{"uid":"user4522","goodsid":"product301"},
-  paymentwall.SigV1,
-)
-params["sig"] = sig
-
-pb := paymentwall.NewPingback(client, params, "174.36.92.186")
+// pingback
+pb := paymentwall.NewPingback(client, "query params", "remote_address")
 if !pb.Validate(false) {
   // handle validation errors
   fmt.Println(pb.ErrorSummary())
@@ -109,9 +96,9 @@ if !pb.Validate(false) {
 }
 
 if pb.IsDeliverable() {
-  // deliver
+  // deliver the product
 } else if pb.IsCancelable() {
-  // cancel
+  // withdraw the product
 }
 ```
 
@@ -135,22 +122,18 @@ fmt.Println(widget.GetHTMLCode(nil))
 ```
 
 ```go
-// Pingback
-params := map[string]any{
-  "uid":      "user40012",
-  "currency": "100",   // virtual currency amount
-  "type":     "0",
-  "ref":      "REF456",
+// pingback
+pb := paymentwall.NewPingback(client, "query params", "remote_address")
+if !pb.Validate(false) {
+  // handle validation errors
+  fmt.Println(pb.ErrorSummary())
+  return
 }
-sig, _ := client.calculateSignature(
-  map[string]any{"uid":"user40012"},
-  paymentwall.SigV1,
-)
-params["sig"] = sig
 
-pb := paymentwall.NewPingback(client, params, "174.36.92.186")
-if pb.Validate(false) && pb.IsDeliverable() {
-  // grant virtual currency
+if pb.IsDeliverable() {
+  // deliver the product
+} else if pb.IsCancelable() {
+  // withdraw the product
 }
 ```
 
@@ -177,21 +160,18 @@ fmt.Println(widget.GetHTMLCode(nil))
 ```
 
 ```go
-// Cart pingback
-params := map[string]any{
-  "uid":      "user40012",
-  "goodsid":  []any{"product301","product607"},
-  "type":     "0",
-  "ref":      "REF789",
+// pingback
+pb := paymentwall.NewPingback(client, "query params", "remote_address")
+if !pb.Validate(false) {
+  // handle validation errors
+  fmt.Println(pb.ErrorSummary())
+  return
 }
-sig, _ := client.calculateSignature(params, paymentwall.SigV2) // Cart defaults to SigV2
-params["sig"] = sig
 
-pb := paymentwall.NewPingback(client, params, "174.36.92.186")
-if pb.Validate(false) {
-  for _, p := range pb.GetProducts() {
-    fmt.Println("Deliver product:", p.ID)
-  }
+if pb.IsDeliverable() {
+  // deliver the product
+} else if pb.IsCancelable() {
+  // withdraw the product
 }
 ```
 
@@ -199,7 +179,6 @@ if pb.Validate(false) {
 
 ## Contributing & Support
 
-* See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-* Report issues at [https://github.com/SamoySamoy/paymentwall-go/issues](https://github.com/SamoySamoy/paymentwall-go/issues).
+* Report issues at [https://github.com/paymentwall/paymentwall-go/issues](https://github.com/paymentwall/paymentwall-go/issues).
 
 ---
