@@ -31,10 +31,10 @@ import "github.com/paymentwall/paymentwall-go"
 
 # Code Samples
 
-## Checkout & Digital Goods API
+## Checkout API & Digital Goods API
 
-[Web API details](https://docs.paymentwall.com/apis#section-checkout-onetime)
-[Web API details](https://docs.paymentwall.com/apis#section-widget-dg)
+[Web API details for API Checkout](https://docs.paymentwall.com/apis#section-checkout-onetime) </br>
+[Web API details for API Goods](https://docs.paymentwall.com/apis#section-widget-dg)
 
 ### Initializing Paymentwall
 
@@ -47,8 +47,8 @@ client := paymentwall.NewClient(
 ```
 
 ### Widget Call
-[Web API details](https://docs.paymentwall.com/apis#section-checkout-onetime)
-[Web API details](https://docs.paymentwall.com/apis#section-widget-dg)
+[Web API details for Checkout](https://docs.paymentwall.com/apis#section-checkout-onetime) </br>
+[Web API details for Goods](https://docs.paymentwall.com/apis#section-widget-dg)
 
 The widget is a payment page hosted by Paymentwall that embeds the entire payment flow: selecting the payment method, completing the billing details, and providing customer support via the Help section. You can redirect the users to this page or embed it via iframe. Below is an example that renders an iframe with Paymentwall Widget.
 
