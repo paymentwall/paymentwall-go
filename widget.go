@@ -51,38 +51,49 @@ func (w *Widget) GetParams() (map[string]any, error) {
 	switch w.Client.APIType {
 	case APIGoods:
 		// Expect exactly one product
-		if len(w.Products) != 1 {
-			w.Client.AppendError("only one product allowed for API_GOODS")
+		if len(w.Products) > 1 {
+			w.Client.AppendError("only one product allowed for API Checkout and empty products for API Goods")
 			return params, fmt.Errorf("invalid product count: %d", len(w.Products))
 		}
-		prod := w.Products[0]
-		// Basic product fields
-		params["amount"] = prod.Amount
-		params["currencyCode"] = prod.CurrencyCode
-		params["ag_name"] = prod.Name
-		params["ag_external_id"] = prod.ID
-		params["ag_type"] = prod.Type
-		// Subscription fields
-		if prod.Type == ProductTypeSubscription {
-			params["ag_period_length"] = prod.PeriodLength
-			params["ag_period_type"] = prod.PeriodType
-			if prod.Recurring {
-				params["ag_recurring"] = 1
-			} else {
-				params["ag_recurring"] = 0
-			}
-			// Trial product
+
+		if len(w.Products) == 1 { 
+            prod := w.Products[0]
+			var postTrialProduct *Product
 			if prod.TrialProduct != nil {
-				trial := prod.TrialProduct
-				params["ag_trial"] = 1
-				params["ag_post_trial_external_id"] = trial.ID
-				params["ag_post_trial_period_length"] = trial.PeriodLength
-				params["ag_post_trial_period_type"] = trial.PeriodType
-				params["ag_post_trial_name"] = trial.Name
-				params["post_trial_amount"] = trial.Amount
-				params["post_trial_currencyCode"] = trial.CurrencyCode
+				postTrialProduct = prod
+				prod = prod.TrialProduct
+			}
+
+			// Basic product fields
+			params["amount"] = prod.Amount
+			params["currencyCode"] = prod.CurrencyCode
+			params["ag_name"] = prod.Name
+			params["ag_external_id"] = prod.ID
+			params["ag_type"] = prod.Type
+
+			// Subscription fields
+			if prod.Type == ProductTypeSubscription {
+				params["ag_period_length"] = prod.PeriodLength
+				params["ag_period_type"] = prod.PeriodType
+				if prod.Recurring {
+					params["ag_recurring"] = 1
+				} else {
+					params["ag_recurring"] = 0
+				}
+
+				// Trial product fields
+				if postTrialProduct != nil {
+					params["ag_trial"] = 1
+					params["ag_post_trial_external_id"] = postTrialProduct.ID
+					params["ag_post_trial_period_length"] = postTrialProduct.PeriodLength
+					params["ag_post_trial_period_type"] = postTrialProduct.PeriodType
+					params["ag_post_trial_name"] = postTrialProduct.Name
+					params["post_trial_amount"] = postTrialProduct.Amount
+					params["post_trial_currencyCode"] = postTrialProduct.CurrencyCode
+				}
 			}
 		}
+		
 	case APICart:
 		// Multiple products
 		for i, prod := range w.Products {

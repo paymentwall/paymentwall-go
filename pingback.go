@@ -17,13 +17,19 @@ type Pingback struct {
 
 // NewPingback constructs a Pingback with given params and source IP.
 func NewPingback(client *Client, params map[string]any, ip string) *Pingback {
-	return &Pingback{Client: client, Params: params, IPAddress: ip, Errors: []string{}}
+	return &Pingback{
+		Client:    client,
+		Params:    params,
+		IPAddress: ip,
+		Errors:    []string{},
+	}
 }
 
 // Validate runs parameter, IP whitelist, and signature checks.
 // skipIPWhitelist allows bypassing the IP check (for testing).
 func (p *Pingback) Validate(skipIPWhitelist bool) bool {
 	if !p.isParamsValid() {
+		p.Errors = append(p.Errors, "Missing parameters")
 		return false
 	}
 	if !skipIPWhitelist && !p.isIPAddressValid() {
@@ -38,13 +44,14 @@ func (p *Pingback) Validate(skipIPWhitelist bool) bool {
 }
 
 // isParamsValid checks for required fields and records missing ones.
+// Matches Python: VC needs ["uid","currency","type","ref","sig"];
+// Goods/Cart need ["uid","goodsid","type","ref","sig"].
 func (p *Pingback) isParamsValid() bool {
-	required := []string{"uid", "sig", "type", "ref"}
-	switch p.Client.APIType {
-	case APIVC:
+	var required []string
+	if p.Client.APIType == APIVC {
 		required = []string{"uid", "currency", "type", "ref", "sig"}
-	case APIGoods:
-		required = []string{"uid", "goodsid", "slength", "speriod", "type", "ref", "sig"}
+	} else {
+		required = []string{"uid", "goodsid", "type", "ref", "sig"}
 	}
 
 	valid := true
@@ -59,7 +66,7 @@ func (p *Pingback) isParamsValid() bool {
 
 // isIPAddressValid checks if the source IP is in Paymentwall's whitelist.
 func (p *Pingback) isIPAddressValid() bool {
-	// Whitelisted ranges: Hardcoded list
+	// Static whitelist entries
 	whitelist := []string{
 		"174.36.92.186",
 		"174.36.96.66",
@@ -80,56 +87,57 @@ func (p *Pingback) isIPAddressValid() bool {
 	return false
 }
 
-// isSignatureValid recalculates and compares the signature.
+// isSignatureValid recalculates and compares the signature using Python-style rules.
 func (p *Pingback) isSignatureValid() bool {
-	// Determine sign_version
+	// 1) Determine sign_version
 	sv := SigV1
 	if val, ok := p.Params["sign_version"]; ok {
 		if i, err := strconv.Atoi(fmt.Sprint(val)); err == nil {
 			sv = SignatureVersion(i)
 		}
 	} else if p.Client.APIType == APICart {
-		// default for cart if not present
+		// default for Cart
 		sv = SigV2
 	}
 
-	// Remove "sig" from params copy
-	signedParams := make(map[string]any)
+	// 2) Build a copy of params without "sig"
+	signedParams := make(map[string]any, len(p.Params))
 	for k, v := range p.Params {
-		if k != "sig" {
-			signedParams[k] = v
+		if k == "sig" {
+			continue
 		}
+		signedParams[k] = v
 	}
 
-	// For v1 and goodsvc, filter only required fields
 	if sv == SigV1 {
-		// fields depend on API type
-		var keys []string
-		if p.Client.APIType == APIVC {
-			keys = []string{"uid"}
-		} else {
-			keys = []string{"uid", "goodsid"}
+		var fields []string
+		switch p.Client.APIType {
+		case APIVC:
+			fields = []string{"uid", "currency", "type", "ref"}
+		case APIGoods:
+			fields = []string{"uid", "goodsid", "slength", "speriod", "type", "ref"}
+		default: // Cart
+			fields = []string{"uid", "goodsid", "type", "ref"}
 		}
-		p400 := make(map[string]any)
-		for _, k := range keys {
-			if v, ok := signedParams[k]; ok {
-				p400[k] = v
+		filtered := make(map[string]any, len(fields))
+		for _, f := range fields {
+			if v, ok := signedParams[f]; ok {
+				filtered[f] = v
 			}
 		}
-		signedParams = p400
+		signedParams = filtered
 	}
 
-	// Calculate signature
+	// 4) Delegate to Client.CalculateSignature (handles V1, V2, V3 hashing)
 	sigCalc, err := p.Client.CalculateSignature(signedParams, sv)
 	if err != nil {
 		return false
 	}
-	// Compare
-	sigOrig := fmt.Sprint(p.Params["sig"])
-	return sigOrig == sigCalc
+
+	// 5) Compare to the original
+	return fmt.Sprint(p.Params["sig"]) == sigCalc
 }
 
-// Helper getters
 
 // GetUserID returns the "uid" parameter.
 func (p *Pingback) GetUserID() string {
@@ -159,11 +167,10 @@ func (p *Pingback) GetProduct() (*Product, error) {
 	if length > 0 {
 		t = ProductTypeSubscription
 	}
-	prod, err := NewProduct(
+	return NewProduct(
 		fmt.Sprint(p.Params["goodsid"]),
 		0, "", "", t, length, periodType, false, nil,
 	)
-	return prod, err
 }
 
 // GetProducts returns a slice of Products for Cart API.
@@ -172,11 +179,9 @@ func (p *Pingback) GetProducts() ([]*Product, error) {
 	if vals, ok := p.Params["goodsid"].([]any); ok {
 		for _, v := range vals {
 			id := fmt.Sprint(v)
-			prod, err := NewProduct(id, 0, "", "", ProductTypeFixed, 0, "", false, nil)
-			if err != nil {
-				continue
+			if prod, err := NewProduct(id, 0, "", "", ProductTypeFixed, 0, "", false, nil); err == nil {
+				prods = append(prods, prod)
 			}
-			prods = append(prods, prod)
 		}
 	}
 	return prods, nil
@@ -185,31 +190,37 @@ func (p *Pingback) GetProducts() ([]*Product, error) {
 // IsDeliverable returns true if pingback type indicates delivery.
 func (p *Pingback) IsDeliverable() bool {
 	t, err := p.GetType()
-	if err != nil {
-		return false
-	}
-	return t == 0 || t == 1 || t == 201
+	return err == nil && (t == 0 || t == 1 || t == 201)
 }
 
 // IsCancelable returns true if pingback type indicates cancellation.
 func (p *Pingback) IsCancelable() bool {
 	t, err := p.GetType()
-	if err != nil {
-		return false
-	}
-	return t == 2 || t == 202
+	return err == nil && (t == 2 || t == 202)
 }
 
 // IsUnderReview returns true if pingback type indicates under review.
 func (p *Pingback) IsUnderReview() bool {
 	t, err := p.GetType()
-	if err != nil {
-		return false
-	}
-	return t == 200
+	return err == nil && t == 200
 }
 
 // ErrorSummary returns accumulated errors.
 func (p *Pingback) ErrorSummary() string {
 	return strings.Join(p.Errors, "\n")
+}
+
+// GetReferenceID returns the "ref" parameter.
+func (p *Pingback) GetReferenceID() string {
+	return fmt.Sprint(p.Params["ref"])
+}
+
+// GetPingbackUniqueID returns a unique ID composed of ref and type, e.g. "REF123_0".
+func (p *Pingback) GetPingbackUniqueID() string {
+	ref := p.GetReferenceID()
+	t, err := p.GetType()
+	if err != nil {
+		return ref
+	}
+	return fmt.Sprintf("%s_%d", ref, t)
 }

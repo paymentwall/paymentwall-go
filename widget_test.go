@@ -88,7 +88,7 @@ func TestGetParamsAPIGoods_InvalidCount(t *testing.T) {
 	}
 	// The widget still returns params map; check that AppendError was called
 	summary := client.ErrorSummary()
-	if !strings.Contains(summary, "only one product allowed for API_GOODS") {
+	if !strings.Contains(summary, "only one product allowed for API Checkout and empty products for API Goods") {
 		t.Errorf("error summary = %q, want mention of product count", summary)
 	}
 }
