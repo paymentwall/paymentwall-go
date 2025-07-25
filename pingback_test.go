@@ -86,7 +86,7 @@ func TestPingbackHelpers_andProductReconstruction(t *testing.T) {
 	client := NewClient("k", "s", APIGoods)
 	// Create pingback for Goods API: supply goodsid, slength, speriod, type, ref
 	params := map[string]any{
-		"uid":    "u5",
+		"uid":     "u5",
 		"goodsid": "g1",
 		"slength": "2",
 		"speriod": "month",
@@ -124,7 +124,7 @@ func TestPingbackHelpers_andProductReconstruction(t *testing.T) {
 func TestPingbackGetProducts_Cart(t *testing.T) {
 	client := NewClient("k", "s", APICart)
 	params := map[string]any{
-		"uid":    "u6",
+		"uid":     "u6",
 		"goodsid": []any{"i1", "i2"},
 		"type":    "0",
 		"ref":     "r6",
@@ -147,7 +147,10 @@ func TestPingbackGetProducts_Cart(t *testing.T) {
 
 func TestPingbackStatusCheckers(t *testing.T) {
 	client := NewClient("k", "s", APIVC)
-	for _, ts := range []struct{ code int; deliver, cancel, review bool }{
+	for _, ts := range []struct {
+		code                    int
+		deliver, cancel, review bool
+	}{
 		{0, true, false, false},
 		{1, true, false, false},
 		{2, false, true, false},

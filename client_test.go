@@ -6,11 +6,11 @@ import (
 
 // Known hashes for "user"+"secret"
 const (
-	uid     = "user"
-	secret  = "secret"
-	md5V1   = "d67673f506f955d7c61821867a3a41dc" // md5("usersecret")
+	uid    = "user"
+	secret = "secret"
+	md5V1  = "d67673f506f955d7c61821867a3a41dc" // md5("usersecret")
 	// For v2 and v3, the base string is "alice=bobsecret"
-	md5V2   = "ac0fd25828991a28d9a92293ad92fa9a" // md5("alice=bobsecret")
+	md5V2    = "ac0fd25828991a28d9a92293ad92fa9a"                                 // md5("alice=bobsecret")
 	sha256V3 = "9e859376d049e42d1882807589ce20b5ccaab97fce0528c071c076831acaf485" // sha256("alice=bobsecret")
 )
 

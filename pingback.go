@@ -41,10 +41,10 @@ func (p *Pingback) Validate(skipIPWhitelist bool) bool {
 func (p *Pingback) isParamsValid() bool {
 	required := []string{"uid", "sig", "type", "ref"}
 	switch p.Client.APIType {
-		case APIVC:
-			required = []string{"uid", "currency", "type", "ref", "sig"}
-		case APIGoods:
-			required = []string{"uid", "goodsid", "slength", "speriod", "type", "ref", "sig"}
+	case APIVC:
+		required = []string{"uid", "currency", "type", "ref", "sig"}
+	case APIGoods:
+		required = []string{"uid", "goodsid", "slength", "speriod", "type", "ref", "sig"}
 	}
 
 	valid := true
@@ -71,7 +71,7 @@ func (p *Pingback) isIPAddressValid() bool {
 	for i := 0; i < 256; i++ {
 		whitelist = append(whitelist, fmt.Sprintf("216.127.71.%d", i))
 	}
-	
+
 	for _, ip := range whitelist {
 		if p.IPAddress == ip {
 			return true
