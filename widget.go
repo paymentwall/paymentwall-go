@@ -113,7 +113,7 @@ func (w *Widget) GetParams() (map[string]any, error) {
 	params["sign_version"] = int(sigVer)
 
 	// Calculate signature
-	sig, err := w.Client.calculateSignature(params, sigVer)
+	sig, err := w.Client.CalculateSignature(params, sigVer)
 	if err != nil {
 		return params, err
 	}

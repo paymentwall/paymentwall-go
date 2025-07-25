@@ -83,7 +83,7 @@ func hashSHA256(s string) string {
 
 // calculateSignature builds a signature string based on the provided parameters and version.
 // It implements SigV1, SigV2, and SigV3 signature algorithms as per Paymentwall's documentation.
-func (c *Client) calculateSignature(
+func (c *Client) CalculateSignature(
 	params map[string]any,
 	version SignatureVersion,
 ) (string, error) {

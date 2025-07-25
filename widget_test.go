@@ -51,7 +51,7 @@ func TestGetParamsAPIVC(t *testing.T) {
 	sv := SignatureVersion(svFloat)
 	// Remove sign from params for recalculation
 	core := copyParams(params, "sign")
-	expected, serr := client.calculateSignature(core, sv)
+	expected, serr := client.CalculateSignature(core, sv)
 	if serr != nil {
 		t.Fatalf("recalculate signature error: %v", serr)
 	}

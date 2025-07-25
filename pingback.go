@@ -120,7 +120,7 @@ func (p *Pingback) isSignatureValid() bool {
 	}
 
 	// Calculate signature
-	sigCalc, err := p.Client.calculateSignature(signedParams, sv)
+	sigCalc, err := p.Client.CalculateSignature(signedParams, sv)
 	if err != nil {
 		return false
 	}

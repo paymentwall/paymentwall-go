@@ -10,7 +10,7 @@ func TestPingbackValidate_VC_SkipIP(t *testing.T) {
 	// prepare params without sig_version; default uses SigV1
 	params := map[string]any{"uid": "u1", "currency": "42", "type": "0", "ref": "r1"}
 	// calculate expected sig: md5("u1"+"s")
-	expSig, err := client.calculateSignature(map[string]any{"uid": "u1"}, SigV1)
+	expSig, err := client.CalculateSignature(map[string]any{"uid": "u1"}, SigV1)
 	if err != nil {
 		t.Fatalf("calc sig error: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestPingbackValidate_WrongSignature(t *testing.T) {
 func TestPingbackValidate_IPWhitelist(t *testing.T) {
 	client := NewClient("k", "s", APIVC)
 	params := map[string]any{"uid": "u4", "currency": "5", "type": "0", "ref": "r4"}
-	expSig, _ := client.calculateSignature(map[string]any{"uid": "u4"}, SigV1)
+	expSig, _ := client.CalculateSignature(map[string]any{"uid": "u4"}, SigV1)
 	params["sig"] = expSig
 	// invalid IP
 	pb := NewPingback(client, params, "1.2.3.4")
@@ -94,7 +94,7 @@ func TestPingbackHelpers_andProductReconstruction(t *testing.T) {
 		"ref":     "r5",
 	}
 	// sig using SigV1 (default)
-	expSig, _ := client.calculateSignature(map[string]any{"uid": "u5", "goodsid": "g1"}, SigV1)
+	expSig, _ := client.CalculateSignature(map[string]any{"uid": "u5", "goodsid": "g1"}, SigV1)
 	params["sig"] = expSig
 	pb := NewPingback(client, params, "174.36.92.186")
 	if !pb.Validate(false) {
@@ -130,7 +130,7 @@ func TestPingbackGetProducts_Cart(t *testing.T) {
 		"ref":     "r6",
 	}
 	// sig using SigV1 and goodsid filtered for uid only
-	expSig, _ := client.calculateSignature(params, SigV2)
+	expSig, _ := client.CalculateSignature(params, SigV2)
 	params["sig"] = expSig
 	pb := NewPingback(client, params, "174.36.92.186")
 	if !pb.Validate(false) {
@@ -160,7 +160,7 @@ func TestPingbackStatusCheckers(t *testing.T) {
 		{203, false, false, false},
 	} {
 		params := map[string]any{"uid": "u7", "currency": "0", "type": fmt.Sprint(ts.code), "ref": "r7"}
-		expSig, _ := client.calculateSignature(map[string]any{"uid": "u7"}, SigV1)
+		expSig, _ := client.CalculateSignature(map[string]any{"uid": "u7"}, SigV1)
 		params["sig"] = expSig
 		pb := NewPingback(client, params, "174.36.92.186")
 		if !pb.Validate(false) {

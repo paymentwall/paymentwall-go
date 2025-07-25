@@ -16,7 +16,7 @@ const (
 
 func TestCalculateSignature_V1(t *testing.T) {
 	client := NewClient("appKey", secret, APIVC)
-	sig, err := client.calculateSignature(map[string]any{"uid": uid}, SigV1)
+	sig, err := client.CalculateSignature(map[string]any{"uid": uid}, SigV1)
 	if err != nil {
 		t.Fatalf("unexpected error for SigV1: %v", err)
 	}
@@ -28,7 +28,7 @@ func TestCalculateSignature_V1(t *testing.T) {
 func TestCalculateSignature_V2(t *testing.T) {
 	client := NewClient("appKey", secret, APIVC)
 	params := map[string]any{"alice": "bob"}
-	sig, err := client.calculateSignature(params, SigV2)
+	sig, err := client.CalculateSignature(params, SigV2)
 	if err != nil {
 		t.Fatalf("unexpected error for SigV2: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestCalculateSignature_V2(t *testing.T) {
 func TestCalculateSignature_V3(t *testing.T) {
 	client := NewClient("appKey", secret, APIVC)
 	params := map[string]any{"alice": "bob"}
-	sig, err := client.calculateSignature(params, SigV3)
+	sig, err := client.CalculateSignature(params, SigV3)
 	if err != nil {
 		t.Fatalf("unexpected error for SigV3: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestCalculateSignature_V3(t *testing.T) {
 
 func TestCalculateSignature_EmptySecret(t *testing.T) {
 	client := NewClient("appKey", "", APIVC)
-	_, err := client.calculateSignature(map[string]any{"uid": uid}, SigV1)
+	_, err := client.CalculateSignature(map[string]any{"uid": uid}, SigV1)
 	if err == nil {
 		t.Fatal("expected error when secret key is empty, got nil")
 	}
