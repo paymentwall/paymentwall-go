@@ -2,10 +2,34 @@
 package paymentwall
 
 import (
+	"net"
+	"sync"
 	"fmt"
 	"strconv"
 	"strings"
 )
+
+var (
+    _ipWhitelist map[string]struct{}
+    _cidrNet     *net.IPNet
+    _once        sync.Once
+)
+
+func initWhitelist() {
+    // 1) seed fixed addresses
+    _ipWhitelist = map[string]struct{}{
+        "174.36.92.186": {},
+        "174.36.96.66":  {},
+        "174.36.92.187": {},
+        "174.36.92.192": {},
+        "174.37.14.28":  {},
+    }
+    // 2) parse the /24 CIDR
+    _, cidr, err := net.ParseCIDR("216.127.71.0/24")
+    if err == nil {
+        _cidrNet = cidr
+    }
+}
 
 // Pingback represents a Paymentwall webhook notification validator.
 type Pingback struct {
@@ -66,28 +90,24 @@ func (p *Pingback) isParamsValid() bool {
 
 // isIPAddressValid checks if the source IP is in Paymentwall's whitelist.
 func (p *Pingback) isIPAddressValid() bool {
-	// Static whitelist entries
-	whitelist := []string{
-		"174.36.92.186",
-		"174.36.96.66",
-		"174.36.92.187",
-		"174.36.92.192",
-		"174.37.14.28",
-	}
-	// Add 216.127.71.0/24
-	for i := 0; i < 256; i++ {
-		whitelist = append(whitelist, fmt.Sprintf("216.127.71.%d", i))
-	}
+    // one-time init
+    _once.Do(initWhitelist)
 
-	for _, ip := range whitelist {
-		if p.IPAddress == ip {
-			return true
-		}
-	}
-	return false
+    // quick exact match
+    if _, ok := _ipWhitelist[p.IPAddress]; ok {
+        return true
+    }
+    // if we parsed the CIDR, check containment
+    if _cidrNet != nil {
+        ip := net.ParseIP(p.IPAddress)
+        if ip != nil && _cidrNet.Contains(ip) {
+            return true
+        }
+    }
+    return false
 }
 
-// isSignatureValid recalculates and compares the signature using Python-style rules.
+// isSignatureValid recalculates and compares the signature.
 func (p *Pingback) isSignatureValid() bool {
 	// 1) Determine sign_version
 	sv := SigV1

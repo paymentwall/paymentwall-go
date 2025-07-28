@@ -3,6 +3,7 @@ package paymentwall
 
 import (
 	"fmt"
+	"html"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -149,22 +150,27 @@ func (w *Widget) GetURL() (string, error) {
 
 // GetHTMLCode returns the iframe HTML code for the widget.
 func (w *Widget) GetHTMLCode(attrs map[string]string) (string, error) {
-	iframeURL, err := w.GetURL()
-	if err != nil {
-		return "", err
-	}
-	// Default attributes
-	defaultAttrs := map[string]string{"frameborder": "0", "width": "750", "height": "800"}
-	// Merge attrs
-	for k, v := range attrs {
-		defaultAttrs[k] = v
-	}
-	// Build attribute string
-	var parts []string
-	for k, v := range defaultAttrs {
-		parts = append(parts, fmt.Sprintf(`%s="%s"`, k, v))
-	}
-	return fmt.Sprintf("<iframe src=\"%s\" %s></iframe>", iframeURL, strings.Join(parts, " ")), nil
+    rawURL, err := w.GetURL()
+    if err != nil {
+        return "", err
+    }
+    // escape the URL
+    iframeURL := html.EscapeString(rawURL)
+
+    // Default attributes
+    defaultAttrs := map[string]string{"frameborder": "0", "width": "750", "height": "800"}
+    // Merge user attrs (overrides defaults)
+    for k, v := range attrs {
+        defaultAttrs[k] = v
+    }
+
+    // Build attribute string, escaping each value
+    var parts []string
+    for k, v := range defaultAttrs {
+        parts = append(parts, fmt.Sprintf(`%s="%s"`, k, html.EscapeString(v)))
+    }
+
+    return fmt.Sprintf(`<iframe src="%s" %s></iframe>`, iframeURL, strings.Join(parts, " ")), nil
 }
 
 // buildController selects the appropriate controller path.
