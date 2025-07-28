@@ -1,14 +1,14 @@
 # About Paymentwall
 
-[Paymentwall](https://paymentwall.com?source=gh-go) is the leading digital payments platform for globally monetizing digital goods and services. Paymentwall assists game publishers, dating sites, rewards sites, SaaS companies and many other verticals to monetize their digital content and services. Merchants can plug in Paymentwall’s API to accept payments from over 100 different methods including credit cards, debit cards, bank transfers, SMS/Mobile payments, prepaid cards, eWallets, landline payments and others.
+[Paymentwall](https://paymentwall.com) is the leading digital payments platform for globally monetizing digital goods and services. Paymentwall assists game publishers, dating sites, rewards sites, SaaS companies and many other verticals to monetize their digital content and services. Merchants can plug in Paymentwall’s API to accept payments from over 100 different methods including credit cards, debit cards, bank transfers, SMS/Mobile payments, prepaid cards, eWallets, landline payments and others.
 
-To sign up for a Paymentwall Merchant Account, [click here](https://paymentwall.com/signup/merchant?source=gh-go).
+To sign up for a Paymentwall Merchant Account, [click here](https://paymentwall.com/signup/merchant).
 
 # Paymentwall Golang Library
 This library allows developers to use [Paymentwall APIs](https://docs.paymentwall.com/) (Virtual Currency, Digital Goods featuring recurring billing, and Virtual Cart).
 
 To use Paymentwall, all you need to do is to sign up for a Paymentwall Merchant Account so you can setup an Application designed for your site.
-To open your merchant account and set up an application, you can [sign up here](http://paymentwall.com/signup/merchant?source=gh-py).
+To open your merchant account and set up an application, you can [sign up here](http://paymentwall.com/signup/merchant).
 
 
 ---
