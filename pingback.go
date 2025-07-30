@@ -2,33 +2,33 @@
 package paymentwall
 
 import (
-	"net"
-	"sync"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var (
-    _ipWhitelist map[string]struct{}
-    _cidrNet     *net.IPNet
-    _once        sync.Once
+	_ipWhitelist map[string]struct{}
+	_cidrNet     *net.IPNet
+	_once        sync.Once
 )
 
 func initWhitelist() {
-    // 1) seed fixed addresses
-    _ipWhitelist = map[string]struct{}{
-        "174.36.92.186": {},
-        "174.36.96.66":  {},
-        "174.36.92.187": {},
-        "174.36.92.192": {},
-        "174.37.14.28":  {},
-    }
-    // 2) parse the /24 CIDR
-    _, cidr, err := net.ParseCIDR("216.127.71.0/24")
-    if err == nil {
-        _cidrNet = cidr
-    }
+	// 1) seed fixed addresses
+	_ipWhitelist = map[string]struct{}{
+		"174.36.92.186": {},
+		"174.36.96.66":  {},
+		"174.36.92.187": {},
+		"174.36.92.192": {},
+		"174.37.14.28":  {},
+	}
+	// 2) parse the /24 CIDR
+	_, cidr, err := net.ParseCIDR("216.127.71.0/24")
+	if err == nil {
+		_cidrNet = cidr
+	}
 }
 
 // Pingback represents a Paymentwall webhook notification validator.
@@ -68,7 +68,7 @@ func (p *Pingback) Validate(skipIPWhitelist bool) bool {
 }
 
 // isParamsValid checks for required fields and records missing ones.
-// Matches Python: VC needs ["uid","currency","type","ref","sig"];
+// VC needs ["uid","currency","type","ref","sig"];
 // Goods/Cart need ["uid","goodsid","type","ref","sig"].
 func (p *Pingback) isParamsValid() bool {
 	var required []string
@@ -90,21 +90,21 @@ func (p *Pingback) isParamsValid() bool {
 
 // isIPAddressValid checks if the source IP is in Paymentwall's whitelist.
 func (p *Pingback) isIPAddressValid() bool {
-    // one-time init
-    _once.Do(initWhitelist)
+	// one-time init
+	_once.Do(initWhitelist)
 
-    // quick exact match
-    if _, ok := _ipWhitelist[p.IPAddress]; ok {
-        return true
-    }
-    // if we parsed the CIDR, check containment
-    if _cidrNet != nil {
-        ip := net.ParseIP(p.IPAddress)
-        if ip != nil && _cidrNet.Contains(ip) {
-            return true
-        }
-    }
-    return false
+	// quick exact match
+	if _, ok := _ipWhitelist[p.IPAddress]; ok {
+		return true
+	}
+	// if we parsed the CIDR, check containment
+	if _cidrNet != nil {
+		ip := net.ParseIP(p.IPAddress)
+		if ip != nil && _cidrNet.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 // isSignatureValid recalculates and compares the signature.
@@ -129,6 +129,12 @@ func (p *Pingback) isSignatureValid() bool {
 		signedParams[k] = v
 	}
 
+	// 3) Inject sign_version for v2/v3 
+	if sv != SigV1 {
+		signedParams["sign_version"] = int(sv)
+	}
+
+	// 4) For SigV1, filter down to only the required fields
 	if sv == SigV1 {
 		var fields []string
 		switch p.Client.APIType {
@@ -148,16 +154,15 @@ func (p *Pingback) isSignatureValid() bool {
 		signedParams = filtered
 	}
 
-	// 4) Delegate to Client.CalculateSignature (handles V1, V2, V3 hashing)
+	// 5) Delegate to Client.CalculateSignature (handles V1, V2, V3 hashing)
 	sigCalc, err := p.Client.CalculateSignature(signedParams, sv)
 	if err != nil {
 		return false
 	}
 
-	// 5) Compare to the original
+	// 6) Compare to the original
 	return fmt.Sprint(p.Params["sig"]) == sigCalc
 }
-
 
 // GetUserID returns the "uid" parameter.
 func (p *Pingback) GetUserID() string {
