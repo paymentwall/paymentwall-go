@@ -57,8 +57,8 @@ func (w *Widget) GetParams() (map[string]any, error) {
 			return params, fmt.Errorf("invalid product count: %d", len(w.Products))
 		}
 
-		if len(w.Products) == 1 { 
-            prod := w.Products[0]
+		if len(w.Products) == 1 {
+			prod := w.Products[0]
 			var postTrialProduct *Product
 			if prod.TrialProduct != nil {
 				postTrialProduct = prod
@@ -94,7 +94,6 @@ func (w *Widget) GetParams() (map[string]any, error) {
 				}
 			}
 		}
-		
 	case APICart:
 		// Multiple products
 		for i, prod := range w.Products {
@@ -125,7 +124,12 @@ func (w *Widget) GetParams() (map[string]any, error) {
 	params["sign_version"] = int(sigVer)
 
 	// Calculate signature
-	sig, err := w.Client.CalculateSignature(params, sigVer)
+	sigParams := params
+	if sigVer == SigV1 {
+		// For SigV1, use only uid to match Python widget.py
+		sigParams = map[string]any{"uid": w.UserID}
+	}
+	sig, err := w.Client.CalculateSignature(sigParams, sigVer)
 	if err != nil {
 		return params, err
 	}
@@ -150,27 +154,27 @@ func (w *Widget) GetURL() (string, error) {
 
 // GetHTMLCode returns the iframe HTML code for the widget.
 func (w *Widget) GetHTMLCode(attrs map[string]string) (string, error) {
-    rawURL, err := w.GetURL()
-    if err != nil {
-        return "", err
-    }
-    // escape the URL
-    iframeURL := html.EscapeString(rawURL)
+	rawURL, err := w.GetURL()
+	if err != nil {
+		return "", err
+	}
+	// escape the URL
+	iframeURL := html.EscapeString(rawURL)
 
-    // Default attributes
-    defaultAttrs := map[string]string{"frameborder": "0", "width": "750", "height": "800"}
-    // Merge user attrs (overrides defaults)
-    for k, v := range attrs {
-        defaultAttrs[k] = v
-    }
+	// Default attributes
+	defaultAttrs := map[string]string{"frameborder": "0", "width": "750", "height": "800"}
+	// Merge user attrs (overrides defaults)
+	for k, v := range attrs {
+		defaultAttrs[k] = v
+	}
 
-    // Build attribute string, escaping each value
-    var parts []string
-    for k, v := range defaultAttrs {
-        parts = append(parts, fmt.Sprintf(`%s="%s"`, k, html.EscapeString(v)))
-    }
+	// Build attribute string, escaping each value
+	var parts []string
+	for k, v := range defaultAttrs {
+		parts = append(parts, fmt.Sprintf(`%s="%s"`, k, html.EscapeString(v)))
+	}
 
-    return fmt.Sprintf(`<iframe src="%s" %s></iframe>`, iframeURL, strings.Join(parts, " ")), nil
+	return fmt.Sprintf(`<iframe src="%s" %s></iframe>`, iframeURL, strings.Join(parts, " ")), nil
 }
 
 // buildController selects the appropriate controller path.
