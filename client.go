@@ -23,7 +23,7 @@ const (
 type SignatureVersion int
 
 const (
-	SigV1 SignatureVersion = 1 // MD5(uid + secret)
+	SigV1 SignatureVersion = 1 // MD5(params + secret)
 	SigV2 SignatureVersion = 2 // MD5(sorted params + secret)
 	SigV3 SignatureVersion = 3 // SHA256(sorted params + secret)
 )
@@ -81,7 +81,7 @@ func hashSHA256(s string) string {
 	return hex.EncodeToString(h[:])
 }
 
-// calculateSignature builds a signature string based on the provided parameters and version.
+// CalculateSignature builds a signature string based on the provided parameters and version.
 // It implements SigV1, SigV2, and SigV3 signature algorithms as per Paymentwall's documentation.
 func (c *Client) CalculateSignature(
 	params map[string]any,
@@ -91,40 +91,58 @@ func (c *Client) CalculateSignature(
 		return "", fmt.Errorf("secret key cannot be empty")
 	}
 
+	var base strings.Builder
+	keys := make([]string, 0, len(params))
+	for k := range params {
+		keys = append(keys, k)
+	}
+
 	switch version {
 	case SigV1:
-		// v1: MD5(uid + secret)
-		uid, _ := params["uid"].(string)
-		return hashMD5(uid + c.SecretKey), nil
-
-	case SigV2, SigV3:
-		// v2/v3: sorted key=value pairs + secret
-		// flatten params
-		keys := make([]string, 0, len(params))
-		for k := range params {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-
-		var base strings.Builder
+		// v1: MD5 of parameters in provided order
+		// Maintain order as provided by pingback.go
 		for _, k := range keys {
 			v := params[k]
-			// handle slices if needed
 			switch val := v.(type) {
 			case []any:
 				for i, item := range val {
 					base.WriteString(fmt.Sprintf("%s[%d]=%v", k, i, item))
 				}
 			default:
-				base.WriteString(fmt.Sprintf("%s=%v", k, val))
+				// Handle nil or missing values as empty string, matching Python's None
+				if val == nil {
+					base.WriteString(fmt.Sprintf("%s=", k))
+				} else {
+					base.WriteString(fmt.Sprintf("%s=%v", k, val))
+				}
 			}
 		}
 		base.WriteString(c.SecretKey)
+		return hashMD5(base.String()), nil
 
+	case SigV2, SigV3:
+		// v2/v3: sorted key=value pairs + secret
+		sort.Strings(keys)
+		for _, k := range keys {
+			v := params[k]
+			switch val := v.(type) {
+			case []any:
+				for i, item := range val {
+					base.WriteString(fmt.Sprintf("%s[%d]=%v", k, i, item))
+				}
+			default:
+				// Handle nil or missing values as empty string
+				if val == nil {
+					base.WriteString(fmt.Sprintf("%s=", k))
+				} else {
+					base.WriteString(fmt.Sprintf("%s=%v", k, val))
+				}
+			}
+		}
+		base.WriteString(c.SecretKey)
 		if version == SigV2 {
 			return hashMD5(base.String()), nil
 		}
-		// SigV3
 		return hashSHA256(base.String()), nil
 
 	default:
