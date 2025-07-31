@@ -1,7 +1,0 @@
-go mod init go-sdk/test
-
-go get github.com/paymentwall/paymentwall-go@master
-
-go mod tidy
-
-go run .

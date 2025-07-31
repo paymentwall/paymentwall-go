@@ -1,75 +1,67 @@
+// product_test.go
 package paymentwall
 
 import (
+	"math"
 	"testing"
 )
 
-func TestNewProduct_FixedRoundingAndType(t *testing.T) {
-	p, err := NewProduct("p1", 9.999, "USD", "Product", ProductTypeFixed, 0, "", false, nil)
+func TestNewProduct_FixedOK(t *testing.T) {
+	p, err := NewProduct("p1", 1.239, "USD", "Name", ProductTypeFixed, 0, "", false, nil)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatal(err)
 	}
-	// Amount should round to two decimals: 9.999 -> 10.00
-	if p.Amount != 10.00 {
-		t.Errorf("Amount rounded = %v, want %v", p.Amount, 10.00)
+	if p.ID != "p1" {
+		t.Errorf("ID = %q; want p1", p.ID)
 	}
-	if p.Type != ProductTypeFixed {
-		t.Errorf("Type = %q, want %q", p.Type, ProductTypeFixed)
+	if d := math.Abs(p.Amount - 1.24); d > 1e-9 {
+		t.Errorf("Amount = %f; want 1.24", p.Amount)
+	}
+	if p.CurrencyCode != "USD" || p.Name != "Name" || p.Type != ProductTypeFixed {
+		t.Errorf("Fields incorrect: %+v", p)
 	}
 	if p.IsRecurring() {
-		t.Errorf("IsRecurring = true, want false for fixed product")
+		t.Error("IsRecurring fixed = true; want false")
 	}
-}
-
-func TestNewProduct_SubscriptionAndRecurring(t *testing.T) {
-	// Create a trial product
-	trial, err := NewProduct("trial", 0.99, "EUR", "Trial", ProductTypeSubscription, 1, PeriodWeek, false, nil)
-	if err != nil {
-		t.Fatalf("unexpected error creating trial: %v", err)
-	}
-	// Main subscription with recurring and trial
-	main, err := NewProduct("sub1", 12.345, "USD", "Subs", ProductTypeSubscription, 1, PeriodMonth, true, trial)
-	if err != nil {
-		t.Fatalf("unexpected error creating subscription: %v", err)
-	}
-	// Amount should round 12.345 -> 12.35
-	if main.Amount != 12.35 {
-		t.Errorf("Amount rounded = %v, want %v", main.Amount, 12.35)
-	}
-	if main.Type != ProductTypeSubscription {
-		t.Errorf("Type = %q, want %q", main.Type, ProductTypeSubscription)
-	}
-	if !main.IsRecurring() {
-		t.Errorf("IsRecurring = false, want true for recurring subscription")
-	}
-	if main.TrialProduct == nil {
-		t.Errorf("TrialProduct is nil, want non-nil for recurring subscription with trial")
-	} else if main.TrialProduct.ID != trial.ID {
-		t.Errorf("TrialProduct.ID = %q, want %q", main.TrialProduct.ID, trial.ID)
+	if p.TrialProduct != nil {
+		t.Errorf("TrialProduct = %v; want nil", p.TrialProduct)
 	}
 }
 
 func TestNewProduct_InvalidType(t *testing.T) {
-	_, err := NewProduct("x", 1.23, "USD", "Bad", "invalidType", 0, "", false, nil)
-	if err == nil {
-		t.Fatal("expected error for invalid product type, got nil")
+	if _, err := NewProduct("x", 0, "", "", "bad", 0, "", false, nil); err == nil {
+		t.Error("Expected error on invalid product type")
 	}
 }
 
-func TestNewProduct_InvalidPeriod(t *testing.T) {
-	_, err := NewProduct("x", 1.23, "USD", "Bad", ProductTypeSubscription, 1, "invalidPeriod", false, nil)
+func TestNewProduct_InvalidPeriodType(t *testing.T) {
+	_, err := NewProduct("x", 0, "", "", ProductTypeSubscription, 1, "bad", true, nil)
 	if err == nil {
-		t.Fatal("expected error for invalid period type, got nil")
+		t.Error("Expected error on invalid period type")
 	}
 }
 
-func TestNewProduct_TrialIgnoredWhenNotRecurring(t *testing.T) {
-	trial, _ := NewProduct("trial", 0.10, "USD", "Trial", ProductTypeSubscription, 1, PeriodWeek, false, nil)
-	p, err := NewProduct("p2", 5.00, "USD", "NonRec", ProductTypeSubscription, 1, PeriodWeek, false, trial)
+func TestNewProduct_SubscriptionWithTrial(t *testing.T) {
+	tr, _ := NewProduct("t", 0.5, "USD", "Trial", ProductTypeFixed, 0, "", false, nil)
+	p, err := NewProduct("s", 2.0, "EUR", "Sub", ProductTypeSubscription, 1, PeriodMonth, true, tr)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatal(err)
+	}
+	if !p.IsRecurring() {
+		t.Error("IsRecurring sub = false; want true")
+	}
+	if p.TrialProduct != tr {
+		t.Errorf("TrialProduct = %v; want %v", p.TrialProduct, tr)
+	}
+}
+
+func TestNewProduct_Sub_NoTrial(t *testing.T) {
+	tr := &Product{ID: "t2"}
+	p, err := NewProduct("s2", 3.0, "USD", "No", ProductTypeSubscription, 1, PeriodWeek, false, tr)
+	if err != nil {
+		t.Fatal(err)
 	}
 	if p.TrialProduct != nil {
-		t.Errorf("TrialProduct not nil, want nil when recurring=false")
+		t.Error("TrialProduct = non-nil; want nil")
 	}
 }

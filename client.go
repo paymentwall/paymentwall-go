@@ -109,7 +109,7 @@ func (c *Client) CalculateSignature(
 					base.WriteString(fmt.Sprintf("%s[%d]=%v", k, i, item))
 				}
 			default:
-				// Handle nil or missing values as empty string, matching Python's None
+				// Handle nil or missing values as empty string
 				if val == nil {
 					base.WriteString(fmt.Sprintf("%s=", k))
 				} else {

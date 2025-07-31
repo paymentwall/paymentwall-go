@@ -126,7 +126,6 @@ func (w *Widget) GetParams() (map[string]any, error) {
 	// Calculate signature
 	sigParams := params
 	if sigVer == SigV1 {
-		// For SigV1, use only uid to match Python widget.py
 		sigParams = map[string]any{"uid": w.UserID}
 	}
 	sig, err := w.Client.CalculateSignature(sigParams, sigVer)
